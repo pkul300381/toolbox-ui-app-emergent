@@ -14,10 +14,14 @@ const GitManagement = () => {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [configFiles, setConfigFiles] = useState([]);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileDialogOpen, setFileDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchGitLogs();
     fetchGitStatus();
+    fetchConfigFiles();
   }, []);
 
   const fetchGitLogs = async () => {
@@ -38,6 +42,20 @@ const GitManagement = () => {
     } catch (error) {
       console.error('Failed to fetch Git status:', error);
     }
+  };
+
+  const fetchConfigFiles = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/git/files`);
+      setConfigFiles(response.data.files);
+    } catch (error) {
+      console.error('Failed to fetch config files:', error);
+    }
+  };
+
+  const handleViewFile = (file) => {
+    setSelectedFile(file);
+    setFileDialogOpen(true);
   };
 
   const handlePush = async () => {
