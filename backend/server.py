@@ -709,6 +709,50 @@ async def git_log(limit: int = 20, user: Dict = Depends(get_current_user)):
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=500, detail=f"Git log failed: {e.stderr}")
 
+@api_router.get("/git/files")
+async def get_git_files(user: Dict = Depends(get_current_user)):
+    try:
+        files_data = []
+        
+        # List all JSON files in the git repository
+        for file_path in GIT_REPO_PATH.glob("*.json"):
+            try:
+                with open(file_path, 'r') as f:
+                    content = json.load(f)
+                    
+                files_data.append({
+                    "filename": file_path.name,
+                    "connection_id": file_path.stem,
+                    "content": content
+                })
+            except Exception as e:
+                logging.error(f"Error reading file {file_path}: {e}")
+        
+        return {"files": files_data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read Git files: {str(e)}")
+
+@api_router.get("/git/file/{connection_id}")
+async def get_git_file(connection_id: str, user: Dict = Depends(get_current_user)):
+    try:
+        file_path = GIT_REPO_PATH / f"{connection_id}.json"
+        
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="Configuration file not found")
+        
+        with open(file_path, 'r') as f:
+            content = json.load(f)
+        
+        return {
+            "filename": file_path.name,
+            "connection_id": connection_id,
+            "content": content
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read file: {str(e)}")
+
 # Dashboard Stats
 @api_router.get("/dashboard/stats")
 async def get_dashboard_stats(user: Dict = Depends(get_current_user)):
