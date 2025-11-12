@@ -80,6 +80,23 @@ const Dashboard = () => {
     );
   }
 
+  if (!stats) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-96 text-center">
+          <AlertCircle className="h-16 w-16 text-slate-400 dark:text-slate-500 mb-4" />
+          <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-200">
+            Could Not Load Dashboard Stats
+          </h2>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 max-w-md">
+            There was an issue fetching the dashboard statistics. Please check your network
+            connection or try again later.
+          </p>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="space-y-6 animate-fade-in">
