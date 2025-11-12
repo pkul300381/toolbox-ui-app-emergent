@@ -3,9 +3,10 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { GitBranch, GitCommit, Download, Upload, RefreshCw } from 'lucide-react';
+import { GitBranch, GitCommit, Download, Upload, RefreshCw, FileJson, Eye } from 'lucide-react';
 
 const API_BASE = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
