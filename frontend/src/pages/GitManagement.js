@@ -89,6 +89,7 @@ const GitManagement = () => {
     setLoading(true);
     fetchGitLogs();
     fetchGitStatus();
+    fetchConfigFiles();
   };
 
   return (
