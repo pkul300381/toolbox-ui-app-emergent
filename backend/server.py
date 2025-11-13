@@ -30,7 +30,7 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 
 # Git Repository Path
-GIT_REPO_PATH = Path("/app/git_configs")
+GIT_REPO_PATH = ROOT_DIR.parent / "git_configs"
 GIT_REPO_PATH.mkdir(exist_ok=True)
 
 # Create the main app
