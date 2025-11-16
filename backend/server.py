@@ -710,9 +710,9 @@ async def git_status(user: Dict = Depends(require_role([UserRole.ADMIN]))):
 async def git_push(user: Dict = Depends(require_role([UserRole.ADMIN]))):
     try:
         _ensure_git_remote()
-        # Push the main branch to the origin remote and set it as the upstream branch
+        # Push the master branch to the origin remote and set it as the upstream branch
         result = subprocess.run(
-            ["git", "push", "--set-upstream", "origin", "main"],
+            ["git", "push", "--set-upstream", "origin", "master"],
             cwd=GIT_REPO_PATH,
             capture_output=True,
             text=True,
@@ -727,7 +727,7 @@ async def git_push(user: Dict = Depends(require_role([UserRole.ADMIN]))):
 async def git_pull(user: Dict = Depends(require_role([UserRole.ADMIN]))):
     try:
         _ensure_git_remote()
-        result = subprocess.run(["git", "pull", "origin", "main"], cwd=GIT_REPO_PATH,
+        result = subprocess.run(["git", "pull", "origin", "master"], cwd=GIT_REPO_PATH,
                               capture_output=True, text=True, check=True)
         await log_audit("git", "repository", "pulled", user)
         return {"message": "Pulled from remote", "output": result.stdout}
