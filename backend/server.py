@@ -288,6 +288,7 @@ def _ensure_git_remote():
         subprocess.run(["git", "init"], cwd=GIT_REPO_PATH, check=True)
         subprocess.run(["git", "config", "user.email", "toolbox@system.com"], cwd=GIT_REPO_PATH, check=True)
         subprocess.run(["git", "config", "user.name", "Toolbox System"], cwd=GIT_REPO_PATH, check=True)
+        subprocess.run(["git", "config", "pull.rebase", "false"], cwd=GIT_REPO_PATH, check=True)  # Set merge strategy
 
     remote_check = subprocess.run(["git", "remote", "-v"], cwd=GIT_REPO_PATH, capture_output=True, text=True)
     git_token = os.environ.get("GIT_TOKEN")
