@@ -522,13 +522,23 @@ async def get_audit_trail(entity_type: Optional[str] = None, entity_id: Optional
     if entity_id:
         query["entity_id"] = entity_id
     
-    trails = await db.audit_trail.find(query, {"_id": 0}).sort("timestamp", -1).to_list(1000)
+    # Fetch all fields, including the default '_id'
+    trails = await db.audit_trail.find(query).sort("timestamp", -1).to_list(1000)
     
+    # Process each document to make it Pydantic-friendly
+    processed_trails = []
     for trail in trails:
-        if isinstance(trail.get('timestamp'), str):
+        # Pydantic models expect 'id' but MongoDB provides '_id'
+        if '_id' in trail:
+            trail['id'] = str(trail.pop('_id'))
+
+        # Ensure timestamp is a datetime object for Pydantic validation
+        if 'timestamp' in trail and isinstance(trail['timestamp'], str):
             trail['timestamp'] = datetime.fromisoformat(trail['timestamp'])
+
+        processed_trails.append(trail)
     
-    return trails
+    return processed_trails
 
 # Alert Routes
 @api_router.get("/alerts", response_model=List[Alert])
