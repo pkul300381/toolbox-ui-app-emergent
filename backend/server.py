@@ -3,6 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from bson import ObjectId
 import os
 import logging
 from pathlib import Path
@@ -512,6 +513,17 @@ async def review_pending_change(change_id: str, review: PendingChangeReview, use
     
     return {"message": f"Change {review.status.value} successfully"}
 
+def convert_object_ids(data):
+    """Recursively convert ObjectId instances to strings."""
+    if isinstance(data, dict):
+        return {key: convert_object_ids(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [convert_object_ids(item) for item in data]
+    elif isinstance(data, ObjectId):
+        return str(data)
+    else:
+        return data
+
 # Audit Trail Routes
 @api_router.get("/audit-trail", response_model=List[AuditTrail])
 async def get_audit_trail(entity_type: Optional[str] = None, entity_id: Optional[str] = None,
@@ -525,18 +537,21 @@ async def get_audit_trail(entity_type: Optional[str] = None, entity_id: Optional
     # Fetch all fields, including the default '_id'
     trails = await db.audit_trail.find(query).sort("timestamp", -1).to_list(1000)
     
-    # Process each document to make it Pydantic-friendly
+    # Process each document to make it serializable
     processed_trails = []
     for trail in trails:
-        # Pydantic models expect 'id' but MongoDB provides '_id'
-        if '_id' in trail:
-            trail['id'] = str(trail.pop('_id'))
+        # Recursively convert all ObjectIds to strings
+        processed_trail = convert_object_ids(trail)
+
+        # Pydantic models expect 'id', but MongoDB provides '_id'
+        if '_id' in processed_trail:
+            processed_trail['id'] = processed_trail.pop('_id')
 
         # Ensure timestamp is a datetime object for Pydantic validation
-        if 'timestamp' in trail and isinstance(trail['timestamp'], str):
-            trail['timestamp'] = datetime.fromisoformat(trail['timestamp'])
+        if 'timestamp' in processed_trail and isinstance(processed_trail['timestamp'], str):
+            processed_trail['timestamp'] = datetime.fromisoformat(processed_trail['timestamp'])
 
-        processed_trails.append(trail)
+        processed_trails.append(processed_trail)
     
     return processed_trails
 
