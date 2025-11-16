@@ -282,29 +282,34 @@ async def log_audit(entity_type: str, entity_id: str, action: str, user: Dict,
     doc['timestamp'] = doc['timestamp'].isoformat()
     await db.audit_trail.insert_one(doc)
 
+def _ensure_git_remote():
+    """Ensure the git repository is initialized and the remote is configured."""
+    if not (GIT_REPO_PATH / ".git").exists():
+        subprocess.run(["git", "init"], cwd=GIT_REPO_PATH, check=True)
+        subprocess.run(["git", "config", "user.email", "toolbox@system.com"], cwd=GIT_REPO_PATH, check=True)
+        subprocess.run(["git", "config", "user.name", "Toolbox System"], cwd=GIT_REPO_PATH, check=True)
+
+    remote_check = subprocess.run(["git", "remote", "-v"], cwd=GIT_REPO_PATH, capture_output=True, text=True)
+    git_token = os.environ.get("GIT_TOKEN")
+    if not git_token:
+        raise HTTPException(status_code=500, detail="GIT_TOKEN not set in environment")
+
+    remote_url = f"https://{git_token}@github.com/pkul300381/git_configs.git"
+
+    if "origin" not in remote_check.stdout:
+        subprocess.run(["git", "remote", "add", "origin", remote_url], cwd=GIT_REPO_PATH, check=True)
+    else:
+        # Ensure the URL is correct, in case the token changed
+        subprocess.run(["git", "remote", "set-url", "origin", remote_url], cwd=GIT_REPO_PATH, check=True)
+
 def git_commit_config(connection_id: str, config_data: Dict, message: str):
     """Commit configuration to Git repository"""
     try:
+        _ensure_git_remote()
         file_path = GIT_REPO_PATH / f"{connection_id}.json"
         with open(file_path, 'w') as f:
             json.dump(config_data, f, indent=2, default=str)
         
-        # Initialize git repo if not exists
-        if not (GIT_REPO_PATH / ".git").exists():
-            subprocess.run(["git", "init"], cwd=GIT_REPO_PATH, check=True)
-            subprocess.run(["git", "config", "user.email", "toolbox@system.com"], cwd=GIT_REPO_PATH)
-            subprocess.run(["git", "config", "user.name", "Toolbox System"], cwd=GIT_REPO_PATH)
-
-        # Check if remote 'origin' is configured
-        remote_check = subprocess.run(["git", "remote", "-v"], cwd=GIT_REPO_PATH, capture_output=True, text=True)
-        if "origin" not in remote_check.stdout:
-            git_token = os.environ.get("GIT_TOKEN")
-            if not git_token:
-                logging.error("GIT_TOKEN not set in environment")
-                return False
-            remote_url = f"https://{git_token}@github.com/pkul300381/git_configs.git"
-            subprocess.run(["git", "remote", "add", "origin", remote_url], cwd=GIT_REPO_PATH, check=True)
-
         subprocess.run(["git", "add", f"{connection_id}.json"], cwd=GIT_REPO_PATH, check=True)
         subprocess.run(["git", "commit", "-m", message], cwd=GIT_REPO_PATH, check=True)
         return True
@@ -704,6 +709,7 @@ async def git_status(user: Dict = Depends(require_role([UserRole.ADMIN]))):
 @api_router.post("/git/push")
 async def git_push(user: Dict = Depends(require_role([UserRole.ADMIN]))):
     try:
+        _ensure_git_remote()
         # Push the main branch to the origin remote and set it as the upstream branch
         result = subprocess.run(
             ["git", "push", "--set-upstream", "origin", "main"],
@@ -720,7 +726,8 @@ async def git_push(user: Dict = Depends(require_role([UserRole.ADMIN]))):
 @api_router.post("/git/pull")
 async def git_pull(user: Dict = Depends(require_role([UserRole.ADMIN]))):
     try:
-        result = subprocess.run(["git", "pull"], cwd=GIT_REPO_PATH, 
+        _ensure_git_remote()
+        result = subprocess.run(["git", "pull", "origin", "main"], cwd=GIT_REPO_PATH,
                               capture_output=True, text=True, check=True)
         await log_audit("git", "repository", "pulled", user)
         return {"message": "Pulled from remote", "output": result.stdout}
